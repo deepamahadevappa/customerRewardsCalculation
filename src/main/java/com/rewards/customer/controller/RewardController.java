@@ -1,6 +1,7 @@
 package com.rewards.customer.controller;
 
 import com.rewards.customer.model.Customer;
+import com.rewards.customer.model.CustomerResponse;
 import com.rewards.customer.service.RewardService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,11 @@ public class RewardController {
 
     private static final Logger logger = LoggerFactory.getLogger(RewardController.class);
 
+    /**
+     * This method saves the Customer details to the datavbase
+     * @param customer
+     * @return Success messages upon successfully inserted the data
+     */
     @RequestMapping("/saveDetails")
     @PostMapping
     public ResponseEntity<String> saveReward(@Valid @RequestBody Customer customer){
@@ -39,12 +45,22 @@ public class RewardController {
 
 }
 
+    /**
+     * This method gets the rewards of the customer for the 3 months from the date to 3 months
+     * @param phoneNumber
+     * @return returns the response with the rewards calculated
+     * @throws ExecutionException
+     * @throws InterruptedException
+     */
     @RequestMapping("/getDetails/{phoneNumber}")
     @GetMapping
-    public ResponseEntity<String> getReward(@PathVariable Long phoneNumber) throws ExecutionException, InterruptedException {
+    public ResponseEntity<CustomerResponse> getReward(@PathVariable Long phoneNumber) throws ExecutionException, InterruptedException {
         logger.info("Received request to get the details for the user of phone number: {}", phoneNumber);
-
-        String response = rewardService.getReward(phoneNumber).get();
+        CustomerResponse response = null;
+        if (phoneNumber == null){
+            response.setMessage("Please provide the valid phone number to fectch teh details");
+        }
+        response = rewardService.getReward(phoneNumber).get();
         logger.info("Successfully processed rewards for phone number: {}", phoneNumber);
         return ResponseEntity.ok(response);
 

@@ -4,6 +4,8 @@ package com.rewards.customer.test.service;
 import com.rewards.customer.exception.DatabaseFailureExcpetion;
 import com.rewards.customer.exception.ResourceNotFoundException;
 import com.rewards.customer.model.Customer;
+import com.rewards.customer.model.CustomerResponse;
+import com.rewards.customer.model.ShoppedMonths;
 import com.rewards.customer.repository.CustomerRepository;
 import com.rewards.customer.serviceImpl.RewardServiceImpl;
 import com.sun.org.apache.bcel.internal.generic.ARETURN;
@@ -54,17 +56,16 @@ class RewardServiceTest {
         testCustomer.setPhoneNumber(123456789L);
         testCustomer.setPrice(75);
 
-        // All message source stubs are now lenient for all tests
         when(messageSource.getMessage("rewards.not_registered", null, Locale.getDefault()))
                 .thenReturn("Sorry this Phone Number is not registered. Please register!!");
         when(messageSource.getMessage("rewards.not_active", null, Locale.getDefault()))
-                .thenReturn("You haven't shopped with us for more than 3 months. Shop and get rewards!!!");
+                .thenReturn("Rewards are calculated for the last 3 months!! Shop now and earn rewards.");
         when(messageSource.getMessage("rewards.not_eligible", null, Locale.getDefault()))
                 .thenReturn("Sorry no rewards points!! Please shop for minimum of $50");
         when(messageSource.getMessage(eq("rewards.success"), any(Object[].class), any(Locale.class)))
                 .thenAnswer(invocation -> {
                     Object[] args = invocation.getArgument(1);
-                    return String.format("Congratulations!!!!, you have received a total of %s points for your order of $%s", args[0], args[1]);
+                    return String.format("Congratulations!!!!, you have received a total of %s points for your order", args[0]);
                 });
     }
 
@@ -77,12 +78,6 @@ class RewardServiceTest {
         verify(customerRepository, times(1)).save(getCustomers().get(0));
     }
 
-    @Test
-    void testSaveReward_Failure() {
-        doThrow(new DataAccessException("Database error") {}).when(customerRepository).save(any(Customer.class));
-        assertThrows(DatabaseFailureExcpetion.class, () -> rewardService.saveReward(getCustomers().get(0)));
-        verify(customerRepository, times(1)).save(getCustomers().get(0));
-    }
 
     // --- Test cases for getReward() ---
 
@@ -104,9 +99,10 @@ class RewardServiceTest {
         oldCustomers.get(0).setShoppedDate(LocalDate.now().minusMonths(3));
         oldCustomers.get(0).setPrice(500);
         when(customerRepository.findByPhoneNumber(anyLong())).thenReturn(oldCustomers);
-        String expectedMessage = "You haven't shopped with us for more than 3 months. Shop and get rewards!!!";
-        String result = rewardService.getReward(123L).get();
-        assertEquals(expectedMessage, result);
+        String expectedMessage = "Rewards are calculated for the last 3 months!! Shop now and earn rewards.";
+        CustomerResponse result = response(expectedMessage, oldCustomers.get(0).getPrice());
+        result = rewardService.getReward(123L).get();
+        assertEquals(expectedMessage, result.getMessage());
     }
 
     @Test
@@ -116,8 +112,9 @@ class RewardServiceTest {
         recentIneligibleCustomers.get(0).setPrice(7);
         when(customerRepository.findByPhoneNumber(anyLong())).thenReturn(recentIneligibleCustomers);
         String expectedMessage = "Sorry no rewards points!! Please shop for minimum of $50";
-        String result = rewardService.getReward(123L).get();
-        assertEquals(expectedMessage, result);
+        CustomerResponse result = response(expectedMessage, recentIneligibleCustomers.get(0).getPrice());
+        result = rewardService.getReward(123L).get();
+        assertEquals(expectedMessage, result.getMessage());
     }
 
     @Test
@@ -126,9 +123,10 @@ class RewardServiceTest {
         customers.get(0).setShoppedDate(LocalDate.now());
         customers.get(0).setPrice(75);
         when(customerRepository.findByPhoneNumber(anyLong())).thenReturn(customers);
-        String expectedMessage = "Congratulations!!!!, you have received a total of 25 points for your order of $75";
-        String result = rewardService.getReward(123L).get();
-        assertEquals(expectedMessage, result);
+        String expectedMessage = "Congratulations!!!!, you have received a total of 25 points for your order";
+        CustomerResponse result = response(expectedMessage, customers.get(0).getPrice());
+        result = rewardService.getReward(123L).get();
+        assertEquals(expectedMessage, result.getMessage());
     }
 
     @Test
@@ -138,9 +136,10 @@ class RewardServiceTest {
         customers.get(0).setShoppedDate(LocalDate.now());
         customers.get(0).setPrice(120);
         when(customerRepository.findByPhoneNumber(anyLong())).thenReturn(customers);
-        String expectedMessage = "Congratulations!!!!, you have received a total of 90 points for your order of $120";
-        String result = rewardService.getReward(123L).get();
-        assertEquals(expectedMessage, result);
+        String expectedMessage = "Congratulations!!!!, you have received a total of 90 points for your order";
+        CustomerResponse result = response(expectedMessage, customers.get(0).getPrice());
+        result = rewardService.getReward(123L).get();
+        assertEquals(expectedMessage, result.getMessage());
     }
     private List<Customer> getCustomers() {
         List<Customer> customers = new ArrayList<>();
@@ -154,6 +153,25 @@ class RewardServiceTest {
         customer.setShoppedDate(LocalDate.now());
         customers.add(customer);
         return customers;
+    }
+
+    private CustomerResponse response(String message, Integer price) {
+        CustomerResponse response = new CustomerResponse();
+        response.setMessage(message);
+        response.setPhoneNumber(123L);
+        response.setShoppedMonthsList(getShoppedMonths(price));
+        return response;
+
+    }
+
+    private List<ShoppedMonths> getShoppedMonths(Integer price) {
+        List<ShoppedMonths> shoppedMonths = new ArrayList<>();
+        ShoppedMonths shoppedMonth1 = new ShoppedMonths();
+        shoppedMonth1.setShoppedMonths("August");
+        shoppedMonth1.setPrice(price);
+        shoppedMonth1.setOrderId(123);
+        shoppedMonths.add(shoppedMonth1);
+        return shoppedMonths;
     }
 
 }

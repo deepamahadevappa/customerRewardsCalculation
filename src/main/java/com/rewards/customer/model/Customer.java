@@ -24,6 +24,7 @@ public class Customer {
     @NotNull(message = "{lastName.notnull}")
     private String lastName;
     @NotNull(message = "{orderId.notnull}")
+    @Column(unique = true)
     private Integer orderId;
     @NotNull(message = "{price.notnull}")
     @Min(value = 10, message = "{price.min}")
@@ -35,6 +36,4 @@ public class Customer {
     @JsonFormat(pattern = "yyyy-MM-dd")
     @PastOrPresent(message = "{shoppedDate.noFutureDate}")
     private LocalDate shoppedDate;
-
-
 }

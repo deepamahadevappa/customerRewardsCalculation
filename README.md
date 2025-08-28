@@ -1,54 +1,158 @@
-Title: Rewards Calculation
+\# Rewards Calculation
 
 
-Design Details:
 
-Controller Layer: The entry point for API requests (a REST controller). Created 2 API's Save and Fecth
-
-Service Layer: Contains the core business logic. It processes requests, data flows, and business logic.
-
-Data Access Layer (Repository): Handles interactions with the database. 
-
-Database: in-memory database.
-
-Design Details of Service Layer:
-
-1) Save new customers
-2) Get the customers based on their phone number
-
-From Service layer calling the repository layer for databse interaction
-
-MessageSource for the retrieving the localized messages
-
-Exception handled using Spring boot exception techniques. Used Global exception handler mechanism
-
-Loggers - Logback logging system from Sppring boot
-
-Used Async for the asynchronous operation
+\## Versions Used
 
 
-API Details:
 
-Get Call: http://localhost:8080/api/v1/customers/getDetails/{phoneNumber}
+&nbsp; \* \*\*Java:\*\* 1.8
 
-which accepts the phone number input
-
-Scenarios's:
-
-When data are 3 months old then message saying - You haven't shopped with us for more than 3 months. Shop and get rewards!!!
-when the price is less than 50 for a month - Sorry no rewards points!! Please shop for minimum of $50
-When he/she has met the criteria then - Congratulations!!!!, you have received a total of 180 points for your order of $120, 120 - > where the numbers are replaced wth plcae holders
+&nbsp; \* \*\*Spring Boot:\*\* 2.7.18
 
 
-Save call: http://localhost:8080/api/v1/customers/saveDetails
 
-input is customer object
+-----
 
-Validations:
-Phone number cannot be null or empty.
-Phone number must be exactly 10 digits.
-Order Id cannot be null or empty.
-First name cannot be null or empty.
-Last Name cannot be null or empty.
-Price cannot be 0.
-Price must be a minimum of $10.
+
+
+\## Design Details
+
+
+
+\### Layers
+
+
+
+&nbsp; \* \*\*Controller Layer:\*\* The entry point for all API requests (a REST controller). Created two APIs: Save and Fetch.
+
+&nbsp; \* \*\*Service Layer:\*\* Contains the core business logic. It processes requests, handles data flow, and applies business logic.
+
+&nbsp; \* \*\*Data Access Layer (Repository):\*\* Manages interactions with the in-memory database.
+
+
+
+\### Service Layer Design
+
+
+
+&nbsp; \* Saves new customers.
+
+&nbsp; \* Fetches customers based on their phone number.
+
+&nbsp; \* Calls the repository layer for database interactions.
+
+&nbsp; \* Uses 'MessageSource' to retrieve localized messages.
+
+&nbsp; \* Handles exceptions using Spring Boot's global exception handler mechanism.
+
+&nbsp; \* Uses 'CompletableFuture' for asynchronous operations.
+
+
+
+-----
+
+
+
+\## API Details
+
+
+
+\### Get Call
+
+
+
+'GET http://localhost:8080/api/v1/customers/getDetails/{phoneNumber}'
+
+This API accepts the user's phone number as input.
+
+
+
+\### Save Call
+
+
+
+'POST http://localhost:8080/api/v1/customers/saveDetails'
+
+This API accepts a 'Customer' object as input.
+
+
+
+\*\*Sample Input Format:\*\*
+
+
+
+json
+
+{
+
+&nbsp; "firstName": "Abc",
+
+&nbsp; "lastName": "Def",
+
+&nbsp; "orderId": 912,
+
+&nbsp; "price": 120,
+
+&nbsp; "phoneNumber": 1234567890,
+
+&nbsp; "shoppedDate": "2025-07-21"
+
+}
+
+
+
+
+
+-----
+
+
+
+\## Validation Details
+
+
+
+&nbsp; \* Phone number cannot be null or empty.
+
+&nbsp; \* Phone number must be exactly 10 digits.
+
+&nbsp; \* Order ID cannot be null or empty.
+
+&nbsp; \* First name cannot be null or empty.
+
+&nbsp; \* Last name cannot be null or empty.
+
+&nbsp; \* Price cannot be zero.
+
+&nbsp; \* Price must be a minimum of $10.
+
+
+
+-----
+
+
+
+\## Scenarios and Messages
+
+
+
+&nbsp; \* \*\*No Recent Shopping:\*\*
+
+&nbsp;   'Rewards are calculated for the last 3 months!! Shop now and earn rewards'
+
+&nbsp; \* \*\*Not Eligible for Rewards:\*\*
+
+&nbsp;   'Sorry, no rewards points!! Please shop for a minimum of $50.'
+
+&nbsp; \* \*\*Rewards Earned:\*\*
+
+&nbsp;   'Congratulations!!!!, you have received a total of 180 points for your order.'
+
+
+
+-----
+
+
+
+\*Screenshots are attached in 'test-screenshot/'\*
+

@@ -1,8 +1,11 @@
+
 package com.rewards.customer.test.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rewards.customer.controller.RewardController;
 import com.rewards.customer.model.Customer;
+import com.rewards.customer.model.CustomerResponse;
+import com.rewards.customer.model.ShoppedMonths;
 import com.rewards.customer.service.RewardService;
 import com.rewards.customer.exception.ResourceNotFoundException;
 import com.rewards.customer.exception.DatabaseFailureExcpetion;
@@ -11,12 +14,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.MessageSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import static java.util.concurrent.CompletableFuture.*;
@@ -24,8 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(RewardController.class)
@@ -39,6 +44,8 @@ public class RewardControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+    @Autowired
+    private MessageSource messageSource;
 
 
     @Test
@@ -85,14 +92,14 @@ public class RewardControllerTest {
     @Test
     public void testGetReward_Success() throws Exception {
         Long phoneNumber = 12345L;
-        String expectedResponse = "Congratulations!!!!, you have received a total of 10 points for your order of $60";
+        String expectedResponse = "Congratulations!!!!, you have received a total of 10 points for your order";
 
         when(rewardService.getReward(phoneNumber))
-                .thenReturn(completedFuture(expectedResponse));
+                .thenReturn(completedFuture(response(expectedResponse, 123)));
 
         mockMvc.perform(get("/api/v1/customers/getDetails/{phoneNumber}", phoneNumber))
                 .andExpect(status().isOk())
-                .andExpect(content().string(expectedResponse));
+                .andExpect(jsonPath("$.message").value(expectedResponse));
     }
 
 
@@ -100,7 +107,7 @@ public class RewardControllerTest {
         Long phoneNumber = 67890L;
         String errorMessage = "Sorry this Phone Number is not Registerd. Please register!!";
 
-       CompletableFuture<String> future = new CompletableFuture<>();
+        CompletableFuture<CustomerResponse> future = new CompletableFuture<>();
         future.completeExceptionally(new ResourceNotFoundException(errorMessage));
 
         when(rewardService.getReward(phoneNumber))
@@ -108,7 +115,7 @@ public class RewardControllerTest {
 
         mockMvc.perform(get("/api/v1/customers/getDetails/{phoneNumber}", phoneNumber))
                 .andExpect(status().isNotFound())
-                .andExpect(content().json("{\"message\":\""+ errorMessage +"\"}"));
+                .andExpect(content().json("{\"message\":\"" + errorMessage + "\"}"));
     }
 
     @Test
@@ -116,7 +123,7 @@ public class RewardControllerTest {
         Long phoneNumber = 11223L;
         String errorMessage = "An unexpected error occurred during async processing.";
 
-        CompletableFuture<String> future = new CompletableFuture<>();
+        CompletableFuture<CustomerResponse> future = new CompletableFuture<>();
         future.completeExceptionally(new DatabaseFailureExcpetion(errorMessage));
 
         when(rewardService.getReward(phoneNumber))
@@ -126,6 +133,25 @@ public class RewardControllerTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(content().json("{\"message\":\"" + errorMessage + "\"}"));
     }
-}
 
+    private CustomerResponse response(String message, Integer price) {
+        CustomerResponse response = new CustomerResponse();
+        response.setMessage(message);
+        response.setPhoneNumber(123L);
+        response.setShoppedMonthsList(getShoppedMonths(price));
+        return response;
+
+    }
+
+    private List<ShoppedMonths> getShoppedMonths(Integer price) {
+        List<ShoppedMonths> shoppedMonths = new ArrayList<>();
+        ShoppedMonths shoppedMonth1 = new ShoppedMonths();
+        shoppedMonth1.setShoppedMonths("August");
+        shoppedMonth1.setPrice(price);
+        shoppedMonth1.setOrderId(123);
+        shoppedMonths.add(shoppedMonth1);
+        return shoppedMonths;
+    }
+
+}
 

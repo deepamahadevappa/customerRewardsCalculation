@@ -1,158 +1,107 @@
-\# Rewards Calculation
+# Rewards Calculation
 
+## Versions Used
 
+### Java: 1.8
 
-\## Versions Used
-
-
-
-&nbsp; \* \*\*Java:\*\* 1.8
-
-&nbsp; \* \*\*Spring Boot:\*\* 2.7.18
-
-
+### Spring Boot: 2.7.18
 
 -----
 
+## Design Details
 
+### Layers
 
-\## Design Details
+#### Controller Layer: The entry point for all API requests. Manages the REST endpoints for saving and fetching customer data.
 
+#### Service Layer: Contains the core business logic, including reward calculation.
 
+#### Data Access Layer (Repository): Handles interactions with the database.
 
-\### Layers
+### Service Layer Design
 
+The service layer is built with a focus on business logic and performance:
 
-
-&nbsp; \* \*\*Controller Layer:\*\* The entry point for all API requests (a REST controller). Created two APIs: Save and Fetch.
-
-&nbsp; \* \*\*Service Layer:\*\* Contains the core business logic. It processes requests, handles data flow, and applies business logic.
-
-&nbsp; \* \*\*Data Access Layer (Repository):\*\* Manages interactions with the in-memory database.
-
-
-
-\### Service Layer Design
-
-
-
-&nbsp; \* Saves new customers.
-
-&nbsp; \* Fetches customers based on their phone number.
-
-&nbsp; \* Calls the repository layer for database interactions.
-
-&nbsp; \* Uses 'MessageSource' to retrieve localized messages.
-
-&nbsp; \* Handles exceptions using Spring Boot's global exception handler mechanism.
-
-&nbsp; \* Uses 'CompletableFuture' for asynchronous operations.
-
-
+* Saves new customer purchase details.
+* Fetches customer data by phone number.
+* Uses `MessageSource` for retrieving localized messages for different scenarios.
+* Leverages `CompletableFuture` for asynchronous operations to improve API responsiveness.
+* Handles exceptions using Spring Boot's global exception handler.
 
 -----
 
+## API Details
 
+### `GET` Endpoint: Get Customer Rewards
 
-\## API Details
+`GET http://localhost:8080/api/v1/customers/getDetails/{phoneNumber}`
 
+This API accepts a user's 10-digit phone number as a path variable and returns their rewards information.
 
+**Sample Response Structure:**
 
-\### Get Call
-
-
-
-'GET http://localhost:8080/api/v1/customers/getDetails/{phoneNumber}'
-
-This API accepts the user's phone number as input.
-
-
-
-\### Save Call
-
-
-
-'POST http://localhost:8080/api/v1/customers/saveDetails'
-
-This API accepts a 'Customer' object as input.
-
-
-
-\*\*Sample Input Format:\*\*
-
-
-
-json
-
+```json
 {
-
-&nbsp; "firstName": "Abc",
-
-&nbsp; "lastName": "Def",
-
-&nbsp; "orderId": 912,
-
-&nbsp; "price": 120,
-
-&nbsp; "phoneNumber": 1234567890,
-
-&nbsp; "shoppedDate": "2025-07-21"
-
+    "phoneNumber": 1234567890,
+    "shoppedMonthsList": [
+        {
+            "orderId": 103,
+            "month": "AUGUST",
+            "price": 120,
+            "rewardForTheMonth": 90
+        },
+        {
+            "orderId": 104,
+            "month": "JULY",
+            "price": 120,
+            "rewardForTheMonth": 90
+        }
+    ],
+    "totalRewards": 180,
+    "message": "Congratulations!!!!, you have received a total of 180 points for your order"
 }
+```
 
+### `POST` Endpoint: Save Customer Purchase
 
+`POST http://localhost:8080/api/v1/customers/saveDetails`
 
+This API saves a new customer purchase record to the database.
 
+**Sample Request Body:**
 
------
-
-
-
-\## Validation Details
-
-
-
-&nbsp; \* Phone number cannot be null or empty.
-
-&nbsp; \* Phone number must be exactly 10 digits.
-
-&nbsp; \* Order ID cannot be null or empty.
-
-&nbsp; \* First name cannot be null or empty.
-
-&nbsp; \* Last name cannot be null or empty.
-
-&nbsp; \* Price cannot be zero.
-
-&nbsp; \* Price must be a minimum of $10.
-
-
+```json
+{
+    "firstName": "Abc",
+    "lastName": "Def",
+    "orderId": 912,
+    "price": 120,
+    "phoneNumber": 1234567890,
+    "shoppedDate": "2025-07-21"
+}
+```
 
 -----
 
+## Validation Details
 
+All requests are validated to ensure data integrity:
 
-\## Scenarios and Messages
-
-
-
-&nbsp; \* \*\*No Recent Shopping:\*\*
-
-&nbsp;   'Rewards are calculated for the last 3 months!! Shop now and earn rewards'
-
-&nbsp; \* \*\*Not Eligible for Rewards:\*\*
-
-&nbsp;   'Sorry, no rewards points!! Please shop for a minimum of $50.'
-
-&nbsp; \* \*\*Rewards Earned:\*\*
-
-&nbsp;   'Congratulations!!!!, you have received a total of 180 points for your order.'
-
-
+* **Phone Number**: Must be a 10-digit number.
+* **Order ID**: Cannot be null or empty.
+* **Names**: First name and last name cannot be null or empty.
+* **Price**: Must be a minimum of $10 and cannot be zero.
 
 -----
 
+## Scenarios and API Messages
 
+The application provides clear messages for various reward scenarios:
 
-\*Screenshots are attached in 'test-screenshot/'\*
+* **No Recent Shopping**: `Rewards are calculated for the last 3 months!! Shop now and earn rewards`
+* **Not Eligible for Rewards**: `Sorry, no rewards points!! Please shop for a minimum of $50.`
+* **Rewards Earned**: `Congratulations!!!!, you have received a total of 180 points for your order.`
 
+-----
+
+*Screenshots are attached in `test-screenshot/`*

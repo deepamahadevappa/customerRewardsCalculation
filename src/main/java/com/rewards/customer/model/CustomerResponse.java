@@ -12,5 +12,7 @@ public class CustomerResponse {
 
     private Long phoneNumber;
     private List<ShoppedMonths> shoppedMonthsList;
+    private Integer totalRewards;
     private String message;
+
 }

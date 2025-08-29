@@ -146,7 +146,7 @@ public class RewardControllerTest {
     private List<ShoppedMonths> getShoppedMonths(Integer price) {
         List<ShoppedMonths> shoppedMonths = new ArrayList<>();
         ShoppedMonths shoppedMonth1 = new ShoppedMonths();
-        shoppedMonth1.setShoppedMonths("August");
+        shoppedMonth1.setMonth("August");
         shoppedMonth1.setPrice(price);
         shoppedMonth1.setOrderId(123);
         shoppedMonths.add(shoppedMonth1);

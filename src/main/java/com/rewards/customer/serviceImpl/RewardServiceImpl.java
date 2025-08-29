@@ -16,7 +16,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
@@ -75,13 +74,14 @@ public class RewardServiceImpl implements RewardService {
         if (customerList == null || customerList.isEmpty()) {
             throw new ResourceNotFoundException(messageSource.getMessage("rewards.not_registered", null, Locale.getDefault()));
         }
-        LocalDate today = LocalDate.now();
         List<Customer> eligibleCustomers;
-        LocalDate threeMonthsAgo = today.minusMonths(3);
+        LocalDate threeMonthsAgo = LocalDate.now().minusMonths(3);
         List<Customer> recentCustomers = customerList.stream().filter(rewardCustomer -> rewardCustomer.getShoppedDate().isAfter(threeMonthsAgo)).collect(Collectors.toList());
         if (recentCustomers.isEmpty()) {
-            customerResponse = buildResponse(customerList, messageSource.getMessage("rewards.not_active", null, Locale.getDefault()), phoneNumber);
-            return CompletableFuture.completedFuture(customerResponse);
+            List<ShoppedMonths> shoppedMonthsList = createShoppedMonthsList(customerList, false);
+            return CompletableFuture.completedFuture(
+                    buildResponse(messageSource.getMessage("rewards.not_active", null, Locale.getDefault()), phoneNumber, shoppedMonthsList, 0)
+            );
 
         } else {
             eligibleCustomers = recentCustomers.stream().filter(customer -> customer.getPrice() >= 50 && customer.getShoppedDate().isAfter(threeMonthsAgo)).collect(Collectors.toList());
@@ -92,6 +92,7 @@ public class RewardServiceImpl implements RewardService {
 
     /**
      * This method calculates the reward points
+     *
      * @param phoneNumber
      * @param recentCustomers
      * @param eligibleCustomers
@@ -100,47 +101,53 @@ public class RewardServiceImpl implements RewardService {
      * @return returns the response based on the points
      */
     private CustomerResponse rewardCalculation(Long phoneNumber, List<Customer> recentCustomers, List<Customer> eligibleCustomers, CustomerResponse customerResponse, List<Customer> customerList) {
-        if (!recentCustomers.isEmpty() && eligibleCustomers.isEmpty()) {
-            customerResponse = buildResponse(recentCustomers, messageSource.getMessage("rewards.not_eligible", null, Locale.getDefault()), phoneNumber);
+        List<ShoppedMonths> shoppedMonthsList = createShoppedMonthsList(recentCustomers, true);
+        int totalPoints = shoppedMonthsList.stream()
+                .mapToInt(ShoppedMonths::getRewardForTheMonth)
+                .sum();
+        String message;
+        if (totalPoints == 0) {
+            message = messageSource.getMessage("rewards.not_eligible", null, Locale.getDefault());
         } else {
-            int totalPoints = eligibleCustomers.stream()
-                    .mapToInt(customer -> {
-                        int price = customer.getPrice();
-                        if (price > 100) {
-                            return 50 + (price - 100) * 2;
-                        } else if (price > 50) {
-                            return price - 50;
-                        }
-                        return 0;
-                    })
-                    .sum();
-            customerResponse = buildResponse(eligibleCustomers, messageSource.getMessage("rewards.success", new Object[]{totalPoints}, Locale.getDefault()), phoneNumber);
-
+            message = messageSource.getMessage("rewards.success", new Object[]{totalPoints}, Locale.getDefault());
         }
-        return customerResponse;
+        return buildResponse(message, phoneNumber, shoppedMonthsList, totalPoints);
     }
 
-    /**
-     * This method build the customer response
-     * @param customers
-     * @param message
-     * @param phonenumber
-     * @return returns the response
-     */
-    private CustomerResponse buildResponse(List<Customer> customers, String message, Long phonenumber) {
-        CustomerResponse customerResponse = new CustomerResponse();
-        List<ShoppedMonths> shoppedMonthsList = customers.stream()
-                .map(customer -> new ShoppedMonths(
-                        customer.getShoppedDate().getMonth().toString(),
-                        customer.getPrice(),
-                        customer.getOrderId()
-                ))
-                .collect(Collectors.toList());
 
-        customerResponse.setPhoneNumber(phonenumber);
+    /**
+     * Helper method to create a list of ShoppedMonths from a list of Customers.
+     * It can either calculate points or set them to 0.
+     */
+    private List<ShoppedMonths> createShoppedMonthsList(List<Customer> customers, boolean calculatePoints) {
+        return customers.stream()
+                .map(customer -> {
+                    int rewardsPoints = 0;
+                    if (calculatePoints) {
+                        int price = customer.getPrice();
+                        if (price > 100) {
+                            rewardsPoints = 50 + (price - 100) * 2;
+                        } else if (price > 50) {
+                            rewardsPoints = price - 50;
+                        }
+                    }
+                    return new ShoppedMonths(
+                            customer.getOrderId(),
+                            customer.getShoppedDate().getMonth().toString(),
+                            customer.getPrice(),
+                            rewardsPoints
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
+    private CustomerResponse buildResponse(String message, Long phoneNumber, List<ShoppedMonths> shoppedMonthsList, int totalPoints) {
+        CustomerResponse customerResponse = new CustomerResponse();
+        customerResponse.setPhoneNumber(phoneNumber);
         customerResponse.setShoppedMonthsList(shoppedMonthsList);
+        customerResponse.setTotalRewards(totalPoints);
         customerResponse.setMessage(message);
         return customerResponse;
     }
-
 }
+

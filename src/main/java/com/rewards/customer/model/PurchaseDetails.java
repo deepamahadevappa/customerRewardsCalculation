@@ -10,13 +10,13 @@ import javax.validation.constraints.NotNull;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ShoppedMonths {
+public class PurchaseDetails {
 
     private Integer orderId;
     private String month;
     private Integer price;
-    private Integer rewardForTheMonth;
+    private Integer rewardsPoints;
 
-    public ShoppedMonths(String string, @NotNull(message = "{price.notnull}") @Min(value = 10, message = "{price.min}") Integer price, @NotNull(message = "{orderId.notnull}") Integer orderId) {
+    public PurchaseDetails(String string, @NotNull(message = "{price.notnull}") @Min(value = 10, message = "{price.min}") Integer price, @NotNull(message = "{orderId.notnull}") Integer orderId) {
     }
 }

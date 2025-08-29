@@ -5,10 +5,9 @@ import com.rewards.customer.exception.DatabaseFailureExcpetion;
 import com.rewards.customer.exception.ResourceNotFoundException;
 import com.rewards.customer.model.Customer;
 import com.rewards.customer.model.CustomerResponse;
-import com.rewards.customer.model.ShoppedMonths;
+import com.rewards.customer.model.PurchaseDetails;
 import com.rewards.customer.repository.CustomerRepository;
-import com.rewards.customer.serviceImpl.RewardServiceImpl;
-import com.sun.org.apache.bcel.internal.generic.ARETURN;
+import com.rewards.customer.service.RewardServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,18 +43,9 @@ class RewardServiceTest {
     @InjectMocks
     private RewardServiceImpl rewardService;
 
-    private Customer testCustomer;
 
     @BeforeEach
     void setUp() {
-        Customer testCustomer = new Customer();
-        testCustomer.setId(1L);
-        testCustomer.setFirstName("John");
-        testCustomer.setLastName("Doe");
-        testCustomer.setShoppedDate(LocalDate.now());
-        testCustomer.setPhoneNumber(123456789L);
-        testCustomer.setPrice(75);
-
         when(messageSource.getMessage("rewards.not_registered", null, Locale.getDefault()))
                 .thenReturn("Sorry this Phone Number is not registered. Please register!!");
         when(messageSource.getMessage("rewards.not_active", null, Locale.getDefault()))
@@ -73,7 +63,7 @@ class RewardServiceTest {
 
     @Test
     void testSaveReward_Success() {
-        when(customerRepository.save(any(Customer.class))).thenReturn(testCustomer);
+        when(customerRepository.save(any(Customer.class))).thenReturn(getCustomers().get(0));
         assertDoesNotThrow(() -> rewardService.saveReward(getCustomers().get(0)));
         verify(customerRepository, times(1)).save(getCustomers().get(0));
     }
@@ -100,8 +90,8 @@ class RewardServiceTest {
         oldCustomers.get(0).setPrice(500);
         when(customerRepository.findByPhoneNumber(anyLong())).thenReturn(oldCustomers);
         String expectedMessage = "Rewards are calculated for the last 3 months!! Shop now and earn rewards.";
-        CustomerResponse result = response(expectedMessage, oldCustomers.get(0).getPrice());
-        result = rewardService.getReward(123L).get();
+        response(expectedMessage, oldCustomers.get(0).getPrice());
+        CustomerResponse result = rewardService.getReward(123L).get();
         assertEquals(expectedMessage, result.getMessage());
     }
 
@@ -112,8 +102,8 @@ class RewardServiceTest {
         recentIneligibleCustomers.get(0).setPrice(7);
         when(customerRepository.findByPhoneNumber(anyLong())).thenReturn(recentIneligibleCustomers);
         String expectedMessage = "Sorry no rewards points!! Please shop for minimum of $50";
-        CustomerResponse result = response(expectedMessage, recentIneligibleCustomers.get(0).getPrice());
-        result = rewardService.getReward(123L).get();
+        response(expectedMessage, recentIneligibleCustomers.get(0).getPrice());
+        CustomerResponse result = rewardService.getReward(123L).get();
         assertEquals(expectedMessage, result.getMessage());
     }
 
@@ -124,8 +114,8 @@ class RewardServiceTest {
         customers.get(0).setPrice(75);
         when(customerRepository.findByPhoneNumber(anyLong())).thenReturn(customers);
         String expectedMessage = "Congratulations!!!!, you have received a total of 25 points for your order";
-        CustomerResponse result = response(expectedMessage, customers.get(0).getPrice());
-        result = rewardService.getReward(123L).get();
+        response(expectedMessage, customers.get(0).getPrice());
+        CustomerResponse result = rewardService.getReward(123L).get();
         assertEquals(expectedMessage, result.getMessage());
     }
 
@@ -137,8 +127,8 @@ class RewardServiceTest {
         customers.get(0).setPrice(120);
         when(customerRepository.findByPhoneNumber(anyLong())).thenReturn(customers);
         String expectedMessage = "Congratulations!!!!, you have received a total of 90 points for your order";
-        CustomerResponse result = response(expectedMessage, customers.get(0).getPrice());
-        result = rewardService.getReward(123L).get();
+        response(expectedMessage, customers.get(0).getPrice());
+        CustomerResponse result = rewardService.getReward(123L).get();
         assertEquals(expectedMessage, result.getMessage());
     }
     private List<Customer> getCustomers() {
@@ -159,14 +149,14 @@ class RewardServiceTest {
         CustomerResponse response = new CustomerResponse();
         response.setMessage(message);
         response.setPhoneNumber(123L);
-        response.setShoppedMonthsList(getShoppedMonths(price));
+        response.setPurchaseDetailsList(getShoppedMonths(price));
         return response;
 
     }
 
-    private List<ShoppedMonths> getShoppedMonths(Integer price) {
-        List<ShoppedMonths> shoppedMonths = new ArrayList<>();
-        ShoppedMonths shoppedMonth1 = new ShoppedMonths();
+    private List<PurchaseDetails> getShoppedMonths(Integer price) {
+        List<PurchaseDetails> shoppedMonths = new ArrayList<>();
+        PurchaseDetails shoppedMonth1 = new PurchaseDetails();
         shoppedMonth1.setMonth("August");
         shoppedMonth1.setPrice(price);
         shoppedMonth1.setOrderId(123);

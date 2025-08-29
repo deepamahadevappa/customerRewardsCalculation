@@ -11,7 +11,7 @@ import java.util.List;
 public class CustomerResponse {
 
     private Long phoneNumber;
-    private List<ShoppedMonths> shoppedMonthsList;
+    private List<PurchaseDetails> purchaseDetailsList;
     private Integer totalRewards;
     private String message;
 

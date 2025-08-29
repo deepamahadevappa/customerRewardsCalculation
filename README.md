@@ -42,23 +42,29 @@ This API accepts a user's 10-digit phone number as a path variable and returns t
 
 ```json
 {
-    "phoneNumber": 1234567890,
-    "shoppedMonthsList": [
-        {
-            "orderId": 103,
-            "month": "AUGUST",
-            "price": 120,
-            "rewardForTheMonth": 90
-        },
-        {
-            "orderId": 104,
-            "month": "JULY",
-            "price": 120,
-            "rewardForTheMonth": 90
-        }
-    ],
-    "totalRewards": 180,
-    "message": "Congratulations!!!!, you have received a total of 180 points for your order"
+  "phoneNumber": 8899223344,
+  "purchaseDetailsList": [
+    {
+      "orderId": 111,
+      "month": "JUNE",
+      "price": 186,
+      "rewardsPoints": 222
+    },
+    {
+      "orderId": 112,
+      "month": "JULY",
+      "price": 86,
+      "rewardsPoints": 36
+    },
+    {
+      "orderId": 113,
+      "month": "AUGUST",
+      "price": 16,
+      "rewardsPoints": 0
+    }
+  ],
+  "totalRewards": 258,
+  "message": "Congratulations!!!!, you have received a total of 258 points for your order"
 }
 ```
 

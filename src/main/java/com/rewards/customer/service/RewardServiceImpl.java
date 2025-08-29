@@ -1,15 +1,13 @@
-package com.rewards.customer.serviceImpl;
+package com.rewards.customer.service;
 
 import com.rewards.customer.exception.DatabaseFailureExcpetion;
 import com.rewards.customer.exception.ResourceNotFoundException;
 import com.rewards.customer.model.Customer;
 import com.rewards.customer.model.CustomerResponse;
-import com.rewards.customer.model.ShoppedMonths;
+import com.rewards.customer.model.PurchaseDetails;
 import com.rewards.customer.repository.CustomerRepository;
-import com.rewards.customer.service.RewardService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.MessageSource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.scheduling.annotation.Async;
@@ -25,11 +23,14 @@ import java.util.stream.Collectors;
 public class RewardServiceImpl implements RewardService {
     private static final Logger log = LoggerFactory.getLogger(RewardServiceImpl.class);
 
-    @Autowired
-    private MessageSource messageSource;
+    private final MessageSource messageSource;
+    private final CustomerRepository customerRepository;
 
-    @Autowired
-    CustomerRepository customerRepository;
+    // Use a constructor to inject dependencies
+    public RewardServiceImpl(MessageSource messageSource, CustomerRepository customerRepository) {
+        this.messageSource = messageSource;
+        this.customerRepository = customerRepository;
+    }
 
     /**
      * This method saves the Customer details to the datavbase
@@ -61,32 +62,28 @@ public class RewardServiceImpl implements RewardService {
     @Async
     @Override
     public CompletableFuture<CustomerResponse> getReward(Long phoneNumber) {
-        CustomerResponse customerResponse = new CustomerResponse();
+        CustomerResponse customerResponse;
         log.info("Attempting to fetch customer details for User with phone number: {}", phoneNumber);
         List<Customer> customerList;
         try {
             customerList = customerRepository.findByPhoneNumber(phoneNumber);
             log.info("Successfully fetched the details of the User");
         } catch (DataAccessException e) {
-            log.error("Failed to find customer with Phonenumber {}: {}", phoneNumber, e.getMessage());
             throw new DatabaseFailureExcpetion("Could not retrieve customer due to a database error " + e.getMessage());
         }
         if (customerList == null || customerList.isEmpty()) {
             throw new ResourceNotFoundException(messageSource.getMessage("rewards.not_registered", null, Locale.getDefault()));
         }
-        List<Customer> eligibleCustomers;
         LocalDate threeMonthsAgo = LocalDate.now().minusMonths(3);
         List<Customer> recentCustomers = customerList.stream().filter(rewardCustomer -> rewardCustomer.getShoppedDate().isAfter(threeMonthsAgo)).collect(Collectors.toList());
         if (recentCustomers.isEmpty()) {
-            List<ShoppedMonths> shoppedMonthsList = createShoppedMonthsList(customerList, false);
+            List<PurchaseDetails> shoppedMonthsList = createShoppedMonthsList(customerList, false);
             return CompletableFuture.completedFuture(
                     buildResponse(messageSource.getMessage("rewards.not_active", null, Locale.getDefault()), phoneNumber, shoppedMonthsList, 0)
             );
 
-        } else {
-            eligibleCustomers = recentCustomers.stream().filter(customer -> customer.getPrice() >= 50 && customer.getShoppedDate().isAfter(threeMonthsAgo)).collect(Collectors.toList());
         }
-        customerResponse = rewardCalculation(phoneNumber, recentCustomers, eligibleCustomers, customerResponse, customerList);
+        customerResponse = rewardCalculation(phoneNumber, recentCustomers);
         return CompletableFuture.completedFuture(customerResponse);
     }
 
@@ -95,15 +92,12 @@ public class RewardServiceImpl implements RewardService {
      *
      * @param phoneNumber
      * @param recentCustomers
-     * @param eligibleCustomers
-     * @param customerResponse
-     * @param customerList
      * @return returns the response based on the points
      */
-    private CustomerResponse rewardCalculation(Long phoneNumber, List<Customer> recentCustomers, List<Customer> eligibleCustomers, CustomerResponse customerResponse, List<Customer> customerList) {
-        List<ShoppedMonths> shoppedMonthsList = createShoppedMonthsList(recentCustomers, true);
+    private CustomerResponse rewardCalculation(Long phoneNumber, List<Customer> recentCustomers) {
+        List<PurchaseDetails> shoppedMonthsList = createShoppedMonthsList(recentCustomers, true);
         int totalPoints = shoppedMonthsList.stream()
-                .mapToInt(ShoppedMonths::getRewardForTheMonth)
+                .mapToInt(PurchaseDetails::getRewardsPoints)
                 .sum();
         String message;
         if (totalPoints == 0) {
@@ -116,10 +110,10 @@ public class RewardServiceImpl implements RewardService {
 
 
     /**
-     * Helper method to create a list of ShoppedMonths from a list of Customers.
+     * Helper method to create a list of PurchaseDetails from a list of Customers.
      * It can either calculate points or set them to 0.
      */
-    private List<ShoppedMonths> createShoppedMonthsList(List<Customer> customers, boolean calculatePoints) {
+    private List<PurchaseDetails> createShoppedMonthsList(List<Customer> customers, boolean calculatePoints) {
         return customers.stream()
                 .map(customer -> {
                     int rewardsPoints = 0;
@@ -131,7 +125,7 @@ public class RewardServiceImpl implements RewardService {
                             rewardsPoints = price - 50;
                         }
                     }
-                    return new ShoppedMonths(
+                    return new PurchaseDetails(
                             customer.getOrderId(),
                             customer.getShoppedDate().getMonth().toString(),
                             customer.getPrice(),
@@ -141,10 +135,10 @@ public class RewardServiceImpl implements RewardService {
                 .collect(Collectors.toList());
     }
 
-    private CustomerResponse buildResponse(String message, Long phoneNumber, List<ShoppedMonths> shoppedMonthsList, int totalPoints) {
+    private CustomerResponse buildResponse(String message, Long phoneNumber, List<PurchaseDetails> shoppedMonthsList, int totalPoints) {
         CustomerResponse customerResponse = new CustomerResponse();
         customerResponse.setPhoneNumber(phoneNumber);
-        customerResponse.setShoppedMonthsList(shoppedMonthsList);
+        customerResponse.setPurchaseDetailsList(shoppedMonthsList);
         customerResponse.setTotalRewards(totalPoints);
         customerResponse.setMessage(message);
         return customerResponse;

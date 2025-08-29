@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rewards.customer.controller.RewardController;
 import com.rewards.customer.model.Customer;
 import com.rewards.customer.model.CustomerResponse;
-import com.rewards.customer.model.ShoppedMonths;
+import com.rewards.customer.model.PurchaseDetails;
 import com.rewards.customer.service.RewardService;
 import com.rewards.customer.exception.ResourceNotFoundException;
 import com.rewards.customer.exception.DatabaseFailureExcpetion;
@@ -14,7 +14,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.MessageSource;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
@@ -34,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(RewardController.class)
-public class RewardControllerTest {
+class RewardControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -44,12 +43,9 @@ public class RewardControllerTest {
 
     @Autowired
     private ObjectMapper objectMapper;
-    @Autowired
-    private MessageSource messageSource;
-
 
     @Test
-    public void testSaveReward_Success() throws Exception {
+    void testSaveReward_Success() throws Exception {
         Customer mockCustomer = new Customer();
         mockCustomer.setFirstName("John");
         mockCustomer.setLastName("Doe");
@@ -90,7 +86,7 @@ public class RewardControllerTest {
 
 
     @Test
-    public void testGetReward_Success() throws Exception {
+    void testGetReward_Success() throws Exception {
         Long phoneNumber = 12345L;
         String expectedResponse = "Congratulations!!!!, you have received a total of 10 points for your order";
 
@@ -119,7 +115,7 @@ public class RewardControllerTest {
     }
 
     @Test
-    public void testGetReward_DatabaseFailure() throws Exception {
+    void testGetReward_DatabaseFailure() throws Exception {
         Long phoneNumber = 11223L;
         String errorMessage = "An unexpected error occurred during async processing.";
 
@@ -138,14 +134,14 @@ public class RewardControllerTest {
         CustomerResponse response = new CustomerResponse();
         response.setMessage(message);
         response.setPhoneNumber(123L);
-        response.setShoppedMonthsList(getShoppedMonths(price));
+        response.setPurchaseDetailsList(getShoppedMonths(price));
         return response;
 
     }
 
-    private List<ShoppedMonths> getShoppedMonths(Integer price) {
-        List<ShoppedMonths> shoppedMonths = new ArrayList<>();
-        ShoppedMonths shoppedMonth1 = new ShoppedMonths();
+    private List<PurchaseDetails> getShoppedMonths(Integer price) {
+        List<PurchaseDetails> shoppedMonths = new ArrayList<>();
+        PurchaseDetails shoppedMonth1 = new PurchaseDetails();
         shoppedMonth1.setMonth("August");
         shoppedMonth1.setPrice(price);
         shoppedMonth1.setOrderId(123);

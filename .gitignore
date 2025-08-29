@@ -4,5 +4,4 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-test-screenshots/
 
